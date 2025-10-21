@@ -1,30 +1,39 @@
-﻿#include "pch.h"
-
-#include <thread>
+﻿#include <thread>
 #include <mutex>
 
-vector<int32> numList;
+#include "pch.h"
+#include "AccountManager.h"
+#include "UserManager.h"
 
-// 상호 배타적 lock
-mutex numListlock;
-
-void Push()
+void Func()
 {
-	for (int32 ii = 0; ii < 10000; ++ii)
+	for (int32 ii = 0; ii < 100; ++ii)
 	{
-		lock_guard<mutex> lock(numListlock);
-		//unique_lock<mutex> lock(numListlock, defer_lock); -> lock 에 옵션 부여가능
-		numList.push_back(ii);
+		UserManager::Instance()->ProcessSave();
+	}
+}
+
+void Func2()
+{
+	for (int32 ii = 0; ii < 100; ++ii)
+	{
+		AccountManager::Instance()->ProcessLogin();
 	}
 }
 
 int main()
 {
-	thread thread1(Push);
-	thread thread2(Push);
+	thread t1(Func);
+	thread t2(Func2);
 
-	thread1.join();
-	thread2.join();
+	t1.join();
+	t2.join();
 
-	cout << numList.size() << endl;
+	cout << "Jobs Done" << endl;
+
+	// mutex m1;
+	// mutex m2;
+	// lock(m1, m2) // m1잠그고 m2잠금 순서보장
+	// lock_guard<mutex> g1(m1, std::adopt_lock); // 이미 잠겨잇으니까 풀어주기만 해
+	// lock_guard<mutex> g2(m2, std::adopt_lock); // 이미 잠겨잇으니까 풀어주기만 해
 }
