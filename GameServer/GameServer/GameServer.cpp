@@ -1,33 +1,30 @@
 ﻿#include "pch.h"
 
 #include <thread>
-#include <format>
+#include <mutex>
 
-atomic<int32> sum = 0;
+vector<int32> numList;
 
-void Add()
+// 상호 배타적 lock
+mutex numListlock;
+
+void Push()
 {
-	for (int32 ii = 0; ii < 100'0000; ++ii)
+	for (int32 ii = 0; ii < 10000; ++ii)
 	{
-		sum.fetch_add(1);
-	}
-}
-
-void Sub()
-{
-	for (int32 ii = 0; ii < 100'0000; ++ii)
-	{
-		sum.fetch_add(-1);
+		lock_guard<mutex> lock(numListlock);
+		//unique_lock<mutex> lock(numListlock, defer_lock); -> lock 에 옵션 부여가능
+		numList.push_back(ii);
 	}
 }
 
 int main()
 {
-	thread thread1(Add);
-	thread thread2(Sub);
+	thread thread1(Push);
+	thread thread2(Push);
 
 	thread1.join();
 	thread2.join();
 
-	cout << sum << endl;
+	cout << numList.size() << endl;
 }
