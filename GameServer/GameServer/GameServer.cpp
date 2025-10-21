@@ -3,31 +3,31 @@
 #include <thread>
 #include <format>
 
-void HelloThread()
+atomic<int32> sum = 0;
+
+void Add()
 {
-	cout << "Hello Thread" << endl;
+	for (int32 ii = 0; ii < 100'0000; ++ii)
+	{
+		sum.fetch_add(1);
+	}
 }
 
-void HelloThread2(const int32 num)
+void Sub()
 {
-	cout << num << endl;
+	for (int32 ii = 0; ii < 100'0000; ++ii)
+	{
+		sum.fetch_add(-1);
+	}
 }
 
 int main()
 {
-	vector<thread> threadList;
+	thread thread1(Add);
+	thread thread2(Sub);
 
-	for (int32 ii = 0; ii < 10; ++ii)
-	{
-		threadList.push_back(thread(HelloThread2, ii));
-	}
+	thread1.join();
+	thread2.join();
 
-	for (int32 ii = 0; ii < 10; ++ii)
-	{
-		if (true == threadList[ii].joinable())
-			threadList[ii].join();
-
-		// threadList[ii].hardware_concurrency() -> 동시에 사용될 수 있는 스레드 개수 반환
-		// threadList[ii].get_id() -> 스레드 id반환
-	}
+	cout << sum << endl;
 }
