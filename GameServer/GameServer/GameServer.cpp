@@ -1,39 +1,73 @@
-﻿#include <thread>
+﻿#include "pch.h"
+#include <thread>
 #include <mutex>
 
-#include "pch.h"
-#include "AccountManager.h"
-#include "UserManager.h"
-
-void Func()
+class SpinLock
 {
-	for (int32 ii = 0; ii < 100; ++ii)
+public:
+	void lock()
 	{
-		UserManager::Instance()->ProcessSave();
+		bool expected	= false;
+		bool desired	= true;
+		
+		//CAS 의사코드
+		/*
+		if (expected == _locked)
+		{
+			expected	= _locked;
+			_locked		= desired;
+
+			return true;
+		}
+		else
+		{
+			expected = _locked;
+			return false;
+		}
+		*/
+		while (false == _locked.compare_exchange_strong(expected, desired))
+		{
+			expected = false;
+		}		
+	}
+
+	void unlock()
+	{
+		_locked.store(false);
+	}
+
+private:
+	atomic<bool> _locked = false;
+};
+
+int32		sum = 0;
+SpinLock	spinLock;
+
+void Add()
+{
+	for (int32 ii = 0; ii < 10'000; ++ii)
+	{
+		lock_guard<SpinLock> lock(spinLock);
+		++sum;
 	}
 }
 
-void Func2()
+void Sub()
 {
-	for (int32 ii = 0; ii < 100; ++ii)
+	for (int32 ii = 0; ii < 10'000; ++ii)
 	{
-		AccountManager::Instance()->ProcessLogin();
+		lock_guard<SpinLock> lock(spinLock);
+		--sum;
 	}
 }
 
 int main()
 {
-	thread t1(Func);
-	thread t2(Func2);
+	thread t1(Add);
+	thread t2(Sub);
 
 	t1.join();
 	t2.join();
 
-	cout << "Jobs Done" << endl;
-
-	// mutex m1;
-	// mutex m2;
-	// lock(m1, m2) // m1잠그고 m2잠금 순서보장
-	// lock_guard<mutex> g1(m1, std::adopt_lock); // 이미 잠겨잇으니까 풀어주기만 해
-	// lock_guard<mutex> g2(m2, std::adopt_lock); // 이미 잠겨잇으니까 풀어주기만 해
+	cout << sum << endl;
 }
