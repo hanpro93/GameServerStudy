@@ -6,19 +6,25 @@
 
 mutex			gLock;
 queue<int32>	gNumQueue;
-HANDLE			gHandle;
+
+// Condition Variable 은 User-Level 오브젝트임
+condition_variable gCV;
 
 void Producer()
 {
 	while (true)
 	{
+		// lock 잡기
+		// 변수 수정
+		// lock 풀기
+		// 통지
+
 		{
 			unique_lock<mutex> lock(gLock);
 			gNumQueue.push(100);
 		}
 
-		::SetEvent(gHandle); // Signal 상태로 바꿔줌
-		this_thread::sleep_for(100ms);
+		gCV.notify_one();
 	}
 }
 
@@ -26,32 +32,24 @@ void Consumer()
 {
 	while (true)
 	{
-		::WaitForSingleObject(gHandle, INFINITE); // Signal 상태일 때 깨어남
-
 		unique_lock<mutex> lock(gLock);
-		if (false == gNumQueue.empty())
-		{
-			int32 data = gNumQueue.front();
-			gNumQueue.pop();
-			cout << data << endl;
-		}
+		gCV.wait(lock, []() { return false == gNumQueue.empty(); });
+		// lock 잡고
+		// 조건 확인
+		// 조건 만족시 이어서 코드진행
+		// 조건 불만족시 lock을 풀고 대기상태
+
+		int32 data = gNumQueue.front();
+		gNumQueue.pop();
+		cout << data << endl;
 	}
 }
 
 int main()
 {
-	// 커널 오브젝트
-	// Usage Count(몇 명의 스레드에 서 관리할 것인가
-	// Signal / Non-Signal
-	// Auto / Manual
-
-	gHandle = ::CreateEvent(NULL/*보안속성*/, FALSE/*bManualRest*/, FALSE/*bInitialState*/, NULL);
-
 	thread t1(Producer);
 	thread t2(Consumer);
 
 	t1.join();
 	t2.join();
-
-	::CloseHandle(gHandle);
 }
