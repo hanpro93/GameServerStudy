@@ -2,7 +2,7 @@
 #include <thread>
 #include <mutex>
 
-class SpinLock
+class SleepLock
 {
 public:
 	void lock()
@@ -10,24 +10,13 @@ public:
 		bool expected	= false;
 		bool desired	= true;
 		
-		//CAS 의사코드
-		/*
-		if (expected == _locked)
-		{
-			expected	= _locked;
-			_locked		= desired;
-
-			return true;
-		}
-		else
-		{
-			expected = _locked;
-			return false;
-		}
-		*/
 		while (false == _locked.compare_exchange_strong(expected, desired))
 		{
 			expected = false;
+
+			this_thread::sleep_for(std::chrono::milliseconds(0));
+			//this_thread::sleep_for(100ms);
+			//this_thread::yield() == this_thread::sleep_for(0ms);
 		}		
 	}
 
@@ -41,13 +30,13 @@ private:
 };
 
 int32		sum = 0;
-SpinLock	spinLock;
+SleepLock	sleepLock;
 
 void Add()
 {
 	for (int32 ii = 0; ii < 10'000; ++ii)
 	{
-		lock_guard<SpinLock> lock(spinLock);
+		lock_guard<SleepLock> lock(sleepLock);
 		++sum;
 	}
 }
@@ -56,7 +45,7 @@ void Sub()
 {
 	for (int32 ii = 0; ii < 10'000; ++ii)
 	{
-		lock_guard<SpinLock> lock(spinLock);
+		lock_guard<SleepLock> lock(sleepLock);
 		--sum;
 	}
 }
