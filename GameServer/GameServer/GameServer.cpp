@@ -1,62 +1,57 @@
 ﻿#include "pch.h"
 #include <thread>
 #include <mutex>
+#include <windows.h>
+#include <chrono>
 
-class SleepLock
+mutex			gLock;
+queue<int32>	gNumQueue;
+HANDLE			gHandle;
+
+void Producer()
 {
-public:
-	void lock()
+	while (true)
 	{
-		bool expected	= false;
-		bool desired	= true;
-		
-		while (false == _locked.compare_exchange_strong(expected, desired))
 		{
-			expected = false;
+			unique_lock<mutex> lock(gLock);
+			gNumQueue.push(100);
+		}
 
-			this_thread::sleep_for(std::chrono::milliseconds(0));
-			//this_thread::sleep_for(100ms);
-			//this_thread::yield() == this_thread::sleep_for(0ms);
-		}		
-	}
-
-	void unlock()
-	{
-		_locked.store(false);
-	}
-
-private:
-	atomic<bool> _locked = false;
-};
-
-int32		sum = 0;
-SleepLock	sleepLock;
-
-void Add()
-{
-	for (int32 ii = 0; ii < 10'000; ++ii)
-	{
-		lock_guard<SleepLock> lock(sleepLock);
-		++sum;
+		::SetEvent(gHandle); // Signal 상태로 바꿔줌
+		this_thread::sleep_for(100ms);
 	}
 }
 
-void Sub()
+void Consumer()
 {
-	for (int32 ii = 0; ii < 10'000; ++ii)
+	while (true)
 	{
-		lock_guard<SleepLock> lock(sleepLock);
-		--sum;
+		::WaitForSingleObject(gHandle, INFINITE); // Signal 상태일 때 깨어남
+
+		unique_lock<mutex> lock(gLock);
+		if (false == gNumQueue.empty())
+		{
+			int32 data = gNumQueue.front();
+			gNumQueue.pop();
+			cout << data << endl;
+		}
 	}
 }
 
 int main()
 {
-	thread t1(Add);
-	thread t2(Sub);
+	// 커널 오브젝트
+	// Usage Count(몇 명의 스레드에 서 관리할 것인가
+	// Signal / Non-Signal
+	// Auto / Manual
+
+	gHandle = ::CreateEvent(NULL/*보안속성*/, FALSE/*bManualRest*/, FALSE/*bInitialState*/, NULL);
+
+	thread t1(Producer);
+	thread t2(Consumer);
 
 	t1.join();
 	t2.join();
 
-	cout << sum << endl;
+	::CloseHandle(gHandle);
 }
