@@ -1,55 +1,73 @@
 ﻿#include "pch.h"
+
 #include <thread>
+#include <atomic>
 #include <mutex>
-#include <windows.h>
 #include <chrono>
+#include <future>
 
-mutex			gLock;
-queue<int32>	gNumQueue;
-
-// Condition Variable 은 User-Level 오브젝트임
-condition_variable gCV;
-
-void Producer()
+int64 Calculate()
 {
-	while (true)
+	int64 sum = 0;
+
+	for (int32 ii = 0; ii< 100'000; ++ii)
 	{
-		// lock 잡기
-		// 변수 수정
-		// lock 풀기
-		// 통지
-
-		{
-			unique_lock<mutex> lock(gLock);
-			gNumQueue.push(100);
-		}
-
-		gCV.notify_one();
+		sum += ii;
 	}
+
+	return sum;
 }
 
-void Consumer()
+void PromiseWorker(std::promise<string>&& promise)
 {
-	while (true)
-	{
-		unique_lock<mutex> lock(gLock);
-		gCV.wait(lock, []() { return false == gNumQueue.empty(); });
-		// lock 잡고
-		// 조건 확인
-		// 조건 만족시 이어서 코드진행
-		// 조건 불만족시 lock을 풀고 대기상태
+	promise.set_value("Secret Message");
+}
 
-		int32 data = gNumQueue.front();
-		gNumQueue.pop();
-		cout << data << endl;
-	}
+
+void TaskWorker(std::packaged_task<int64(void)>&& task)
+{
+	task();
 }
 
 int main()
 {
-	thread t1(Producer);
-	thread t2(Consumer);
+	// std::future
+	{
+		// deferred -> 지연 실행
+		// async -> 별도의 쓰레드를 만들어서 실행
+		// deferred | async -> 둘중 알아서 실행
+		std::future<int64> future = std::async(std::launch::async, Calculate);
 
-	t1.join();
-	t2.join();
+
+		int64 sum = future.get();
+
+		cout << sum << endl;
+	}
+
+	// std::promise
+	{
+		// 미래에 결과물의 반환해줄꺼라 약속
+		std::promise<string>	promise;
+		std::future<string>		future = promise.get_future();
+
+		thread t(PromiseWorker, std::move(promise));
+
+		string message = future.get();
+		cout << message << endl;
+
+		t.join();
+	}
+
+	// std::packaged_task
+	{
+		std::packaged_task<int64(void)>	task(Calculate);
+		std::future<int64>				futrue = task.get_future();
+
+		thread t(TaskWorker, std::move(task));
+
+		int64 sum = futrue.get();
+		cout << sum << endl;
+
+		t.join();
+	}
 }
