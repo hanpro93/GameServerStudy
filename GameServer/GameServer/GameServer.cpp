@@ -7,41 +7,58 @@
 #include <future>
 #include <windows.h>
 
-int32 buffer[10000][10000];
+// 가시성, 코드 재배치
+int32 x		= 0;
+int32 y		= 0;
+int32 r1	= 0;
+int32 r2	= 0;
+
+volatile bool ready;
+
+void ThreadFunc1()
+{
+	while (false == ready)
+	{
+	}
+
+	// 아래 코드가 코드 재배치가 일어 날 수 있음
+	y	= 1;
+	r1	= x;
+}
+
+void ThreadFunc2()
+{
+	while (false == ready)
+	{
+	}
+
+	// 아래 코드가 코드 재배치가 일어 날 수 있음
+	x	= 1;
+	r2	= y;
+}
 
 int main()
 {
-	memset(buffer, 0, sizeof(buffer));
+	int32 count = 0;
 
+	while (true)
 	{
-		uint64 start = GetTickCount64();
+		ready = false;
+		++count;
 
-		int64 sum = 0;
-		for (int32 ii = 0; ii < 10000; ++ii)
-		{
-			for (int32 jj = 0; jj < 10000; ++jj)
-			{
-				sum += buffer[ii][jj];
-			}
-		}
+		x = y = r1 = r2 = 0;
 
-		uint64 end = GetTickCount64();
-		cout << "Elapsed Tick " << (end - start) << endl;
+		thread t1(ThreadFunc1);
+		thread t2(ThreadFunc2);
+
+		ready = true;
+
+		t1.join();
+		t2.join();
+
+		if ((0 == r1) && (0 == r2))
+			break;
 	}
 
-	{
-		uint64 start = GetTickCount64();
-
-		int64 sum = 0;
-		for (int32 ii = 0; ii < 10000; ++ii)
-		{
-			for (int32 jj = 0; jj < 10000; ++jj)
-			{
-				sum += buffer[jj][ii];
-			}
-		}
-
-		uint64 end = GetTickCount64();
-		cout << "Elapsed Tick " << (end - start) << endl;
-	}
+	cout << count << "번만에 빠져나옴!!" << endl;
 }
