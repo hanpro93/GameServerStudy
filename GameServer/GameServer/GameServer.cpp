@@ -5,69 +5,43 @@
 #include <mutex>
 #include <chrono>
 #include <future>
+#include <windows.h>
 
-int64 Calculate()
-{
-	int64 sum = 0;
-
-	for (int32 ii = 0; ii< 100'000; ++ii)
-	{
-		sum += ii;
-	}
-
-	return sum;
-}
-
-void PromiseWorker(std::promise<string>&& promise)
-{
-	promise.set_value("Secret Message");
-}
-
-
-void TaskWorker(std::packaged_task<int64(void)>&& task)
-{
-	task();
-}
+int32 buffer[10000][10000];
 
 int main()
 {
-	// std::future
+	memset(buffer, 0, sizeof(buffer));
+
 	{
-		// deferred -> 지연 실행
-		// async -> 별도의 쓰레드를 만들어서 실행
-		// deferred | async -> 둘중 알아서 실행
-		std::future<int64> future = std::async(std::launch::async, Calculate);
+		uint64 start = GetTickCount64();
 
+		int64 sum = 0;
+		for (int32 ii = 0; ii < 10000; ++ii)
+		{
+			for (int32 jj = 0; jj < 10000; ++jj)
+			{
+				sum += buffer[ii][jj];
+			}
+		}
 
-		int64 sum = future.get();
-
-		cout << sum << endl;
+		uint64 end = GetTickCount64();
+		cout << "Elapsed Tick " << (end - start) << endl;
 	}
 
-	// std::promise
 	{
-		// 미래에 결과물의 반환해줄꺼라 약속
-		std::promise<string>	promise;
-		std::future<string>		future = promise.get_future();
+		uint64 start = GetTickCount64();
 
-		thread t(PromiseWorker, std::move(promise));
+		int64 sum = 0;
+		for (int32 ii = 0; ii < 10000; ++ii)
+		{
+			for (int32 jj = 0; jj < 10000; ++jj)
+			{
+				sum += buffer[jj][ii];
+			}
+		}
 
-		string message = future.get();
-		cout << message << endl;
-
-		t.join();
-	}
-
-	// std::packaged_task
-	{
-		std::packaged_task<int64(void)>	task(Calculate);
-		std::future<int64>				futrue = task.get_future();
-
-		thread t(TaskWorker, std::move(task));
-
-		int64 sum = futrue.get();
-		cout << sum << endl;
-
-		t.join();
+		uint64 end = GetTickCount64();
+		cout << "Elapsed Tick " << (end - start) << endl;
 	}
 }
