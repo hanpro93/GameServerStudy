@@ -7,58 +7,33 @@
 #include <future>
 #include <windows.h>
 
-// 가시성, 코드 재배치
-int32 x		= 0;
-int32 y		= 0;
-int32 r1	= 0;
-int32 r2	= 0;
+atomic<bool>	ready;
+int32			value;
 
-volatile bool ready;
-
-void ThreadFunc1()
+void Producer()
 {
-	while (false == ready)
-	{
-	}
+	value = 10;
 
-	// 아래 코드가 코드 재배치가 일어 날 수 있음
-	y	= 1;
-	r1	= x;
+	ready.store(true, memory_order::memory_order_release);
 }
 
-void ThreadFunc2()
+void Consumer()
 {
-	while (false == ready)
+	while (false == ready.load(memory_order::memory_order_acquire))
 	{
+
 	}
 
-	// 아래 코드가 코드 재배치가 일어 날 수 있음
-	x	= 1;
-	r2	= y;
+	cout << value << endl;
 }
 
 int main()
 {
-	int32 count = 0;
-
-	while (true)
-	{
-		ready = false;
-		++count;
-
-		x = y = r1 = r2 = 0;
-
-		thread t1(ThreadFunc1);
-		thread t2(ThreadFunc2);
-
-		ready = true;
-
-		t1.join();
-		t2.join();
-
-		if ((0 == r1) && (0 == r2))
-			break;
-	}
-
-	cout << count << "번만에 빠져나옴!!" << endl;
+	ready = false;
+	value = 0;
+	
+	thread t1(Producer);
+	thread t2(Consumer);
+	t1.join();
+	t2.join();
 }
