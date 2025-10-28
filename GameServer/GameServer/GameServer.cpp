@@ -7,31 +7,40 @@
 #include <future>
 #include <windows.h>
 #include <format>
+#include "ConcurrentQueue.h"
+#include "ConcurrentStack.h"
 
-//__declspec(thread) int32 value;
-thread_local int32 LThreadID = 0;
+LockQueue<int32> q;
+LockStack<int32> s;
 
-
-void ThreadMain(int32 threadID)
+void Push()
 {
-	LThreadID = threadID;
-
 	while (true)
 	{
-		cout << format("나는 스레드 {}번 이야!!", LThreadID) << endl;
+		int32 value = rand() % 10;
+		q.Push(value);
+
+		this_thread::sleep_for(10ms);
+	}
+}
+
+void Pop()
+{
+	while (true)
+	{
+		int32 data = 0;
+		if (true == q.TryPop(OUT data))
+			cout << data << endl;
 	}
 }
 
 int main()
 {
-	vector <thread> threads;
+	thread t1(Push);
+	thread t2(Pop);
+	thread t3(Pop);
 
-	for (int32 ii = 0; ii < 10; ++ii)
-	{
-		int32 threadID = ii + 1;
-		threads.push_back(thread(ThreadMain, threadID));
-	}
-
-	for (auto& t : threads)
-		t.join();
+	t1.join();
+	t2.join();
+	t3.join();
 }
