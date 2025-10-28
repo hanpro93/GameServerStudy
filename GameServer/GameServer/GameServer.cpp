@@ -6,34 +6,32 @@
 #include <chrono>
 #include <future>
 #include <windows.h>
+#include <format>
 
-atomic<bool>	ready;
-int32			value;
+//__declspec(thread) int32 value;
+thread_local int32 LThreadID = 0;
 
-void Producer()
+
+void ThreadMain(int32 threadID)
 {
-	value = 10;
+	LThreadID = threadID;
 
-	ready.store(true, memory_order::memory_order_release);
-}
-
-void Consumer()
-{
-	while (false == ready.load(memory_order::memory_order_acquire))
+	while (true)
 	{
-
+		cout << format("나는 스레드 {}번 이야!!", LThreadID) << endl;
 	}
-
-	cout << value << endl;
 }
 
 int main()
 {
-	ready = false;
-	value = 0;
-	
-	thread t1(Producer);
-	thread t2(Consumer);
-	t1.join();
-	t2.join();
+	vector <thread> threads;
+
+	for (int32 ii = 0; ii < 10; ++ii)
+	{
+		int32 threadID = ii + 1;
+		threads.push_back(thread(ThreadMain, threadID));
+	}
+
+	for (auto& t : threads)
+		t.join();
 }
