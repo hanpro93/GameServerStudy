@@ -26,9 +26,9 @@ void Pop()
 {
 	while (true)
 	{
-		int32 data = 0;
-		if (true == s.TryPop(OUT data))
-			cout << data << endl;
+		auto data = s.TryPop();
+		if (nullptr != data)
+			cout << (*data) << endl;
 	}
 }
 
