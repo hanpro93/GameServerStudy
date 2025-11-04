@@ -1,6 +1,10 @@
 #pragma once
 
 #include "Types.h"
+#include "CoreGlobal.h"
+#include "CoreTLS.h"
+#include "CoreMacro.h"
+#include "Lock.h"
 
 #include <iostream>
 #include <vector>
@@ -11,7 +15,8 @@
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
+#include <format>
+
+#include <windows.h>
 
 using namespace std;
-
-void HelloWorld();
