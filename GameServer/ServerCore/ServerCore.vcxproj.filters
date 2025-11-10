@@ -13,6 +13,9 @@
     <Filter Include="Thread">
       <UniqueIdentifier>{0d2fe7cb-ff83-4c35-953e-26264d068fc9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Memory">
+      <UniqueIdentifier>{84a11b2d-4186-4fcb-a0a8-e35e75ba842f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CorePch.h">
@@ -38,6 +41,9 @@
     </ClInclude>
     <ClInclude Include="Lock.h" />
     <ClInclude Include="DeadLockProfiler.h" />
+    <ClInclude Include="RefCounting.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CorePch.cpp">
@@ -57,5 +63,8 @@
     </ClCompile>
     <ClCompile Include="Lock.cpp" />
     <ClCompile Include="DeadLockProfiler.cpp" />
+    <ClCompile Include="RefCounting.cpp">
+      <Filter>Memory</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
