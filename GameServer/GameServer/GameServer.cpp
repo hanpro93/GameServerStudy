@@ -19,49 +19,55 @@ public:
 	int32	_posY	= 0;
 };
 
+using WraightRef = TSharedPtr<Wraight>;
+
 class Missile : public RefCountable
 {
 public:
-	void SetTarget(Wraight* target)
+	void SetTarget(WraightRef target)
 	{
 		_target = target;
-		_target->AddRef();
 	}
 	
-	void Update()
+	bool Update()
 	{
+		if (_target == nullptr)
+			return true;
+
 		int32 posX = _target->_posX;
 		int32 posY = _target->_posY;
 
 		if (0 == _target->_hp)
 		{
-			_target->ReleaseRef();
 			_target = nullptr;
+			return true;
 		}
 	}
 
 private:
-	Wraight* _target = nullptr;
+	WraightRef _target = nullptr;
 };
+
+using MissileRef = TSharedPtr<Missile>;
 
 int main()
 {
-	Wraight* wraight = new Wraight();
-	Missile* missile = new Missile();
+	WraightRef wraight(new Wraight());
+	wraight->ReleaseRef();
+	MissileRef missile(new Missile());
+	missile->ReleaseRef();
 
 	missile->SetTarget(wraight);
 
-	wraight->_hp = 0;
-	wraight->ReleaseRef();
-	wraight = nullptr;
+	wraight->_hp	= 0;
+	wraight			= nullptr;
 	
 	while (true)
 	{
-		if (nullptr != missile)
+		if (missile != nullptr)
 			missile->Update();
 	}
 
-	missile->ReleaseRef();
 	missile = nullptr;
 
 	return 0;
